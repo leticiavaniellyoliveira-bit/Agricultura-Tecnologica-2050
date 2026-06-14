@@ -1,3 +1,5 @@
+/* Leticia agrinho */
+
 const areaInput = document.getElementById('area-input');
 const depthInput = document.getElementById('depth-input');
 const calcButton = document.getElementById('calc-button');
@@ -13,30 +15,34 @@ const usageWater = document.getElementById('usageWater');
 const efficiency = document.getElementById('efficiency');
 const carbon = document.getElementById('carbon');
 
-let coords = parseCoords(coordInput.value);
+let coords = parseCoords(coordInput.value) || { lat: -23.5489, lon: -46.6388 };
 let soilMoisture = 55;
+let map;
+let marker;
 
 const tempChart = createLineChart('tempChart', 'Temperatura (°C)');
 const moistureChart = createLineChart('moistureChart', 'Umidade do solo (%)');
 
-const map = L.map('map').setView([coords.lat, coords.lon], 12);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
-let marker = L.marker([coords.lat, coords.lon]).addTo(map);
+initMap(coords);
 
 calcButton.addEventListener('click', calculateSubstrate);
 
 async function updateAll() {
-  coords = parseCoords(coordInput.value);
-  marker.setLatLng([coords.lat, coords.lon]);
-  map.setView([coords.lat, coords.lon], map.getZoom());
+  const nextCoords = parseCoords(coordInput.value);
+  if (!nextCoords) {
+    showCoordError();
+    return null;
+  }
+
+  coords = nextCoords;
+  clearCoordError();
+  moveMapTo(coords);
+  weatherInfo.innerText = 'Carregando clima...';
 
   const weather = await fetchWeather(coords.lat, coords.lon);
   if (!weather) {
-    weatherInfo.innerText = 'Não foi possível carregar o clima.';
-    return;
+    weatherInfo.innerText = 'Não foi possível carregar o clima para essa localização.';
+    return null;
   }
 
   renderWeather(weather);
@@ -44,11 +50,18 @@ async function updateAll() {
   updateCharts(weather);
   updateSustainability();
   updateAlerts(weather);
+  return weather;
 }
 
 btnSuggest.addEventListener('click', async () => {
-  suggestionPanel.innerText = 'Gerando recomendações...';
-  const rec = await generateRecommendations(coords, soilMoisture);
+  suggestionPanel.innerText = 'Atualizando clima e gerando recomendações...';
+  const weather = await updateAll();
+  if (!weather) {
+    suggestionPanel.innerText = 'Digite uma coordenada válida para gerar recomendações.';
+    return;
+  }
+
+  const rec = generateRecommendations(weather, soilMoisture);
   suggestionPanel.innerHTML = formatSuggestions(rec);
 });
 
@@ -57,6 +70,7 @@ coordInput.addEventListener('keydown', (event) => {
     updateAll();
   }
 });
+coordInput.addEventListener('change', updateAll);
 
 updateAll();
 setInterval(updateAll, 60000);
@@ -95,11 +109,59 @@ function calculateSubstrate() {
 }
 
 function parseCoords(value) {
-  const parts = value.split(',').map((item) => parseFloat(item.trim()));
-  if (parts.length === 2 && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1])) {
-    return { lat: parts[0], lon: parts[1] };
+  const matches = String(value).match(/[-+]?\d+(?:[.,]\d+)?/g);
+  if (!matches || matches.length < 2) {
+    return null;
   }
-  return { lat: -23.5489, lon: -46.6388 };
+
+  const lat = Number(matches[0].replace(',', '.'));
+  const lon = Number(matches[1].replace(',', '.'));
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return null;
+  }
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return null;
+  }
+
+  return { lat, lon };
+}
+
+function initMap(initialCoords) {
+  const mapContainer = document.getElementById('map');
+  if (!window.L || !mapContainer) {
+    if (mapContainer) {
+      mapContainer.innerHTML = '<div class="map-error">Mapa indisponível. Verifique a conexão com a internet e recarregue a página.</div>';
+    }
+    return;
+  }
+
+  map = L.map('map').setView([initialCoords.lat, initialCoords.lon], 10);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+  marker = L.marker([initialCoords.lat, initialCoords.lon]).addTo(map);
+  setTimeout(() => map.invalidateSize(), 0);
+}
+
+function moveMapTo(nextCoords) {
+  if (!map || !marker) {
+    return;
+  }
+
+  const nextLatLng = [nextCoords.lat, nextCoords.lon];
+  marker.setLatLng(nextLatLng);
+  map.setView(nextLatLng, map.getZoom() || 10);
+  map.invalidateSize();
+}
+
+function showCoordError() {
+  coordInput.classList.add('input-error');
+  weatherInfo.innerText = 'Coordenadas inválidas. Use latitude e longitude, por exemplo: -23.5489, -46.6388.';
+}
+
+function clearCoordError() {
+  coordInput.classList.remove('input-error');
 }
 
 async function fetchWeather(lat, lon) {
@@ -157,6 +219,9 @@ function updateAlerts(data) {
   if (precip24 > 20) {
     addAlert('Previsão de chuva intensa nas próximas 24 horas.');
   }
+  if (!alertsList.children.length) {
+    addAlert('Sem alertas críticos para esta localização agora.');
+  }
 }
 
 function addAlert(message) {
@@ -165,8 +230,7 @@ function addAlert(message) {
   alertsList.appendChild(li);
 }
 
-async function generateRecommendations(coords, soil) {
-  const weather = await fetchWeather(coords.lat, coords.lon);
+function generateRecommendations(weather, soil) {
   const temperature = weather?.current_weather?.temperature ?? 22;
   const planting = (temperature >= 16 && temperature <= 30 && soil >= 40 && soil <= 80)
     ? 'Agora é uma boa época para plantio.'
@@ -195,7 +259,12 @@ function formatSuggestions(rec) {
 }
 
 function createLineChart(canvasId, label) {
-  const ctx = document.getElementById(canvasId).getContext('2d');
+  const canvas = document.getElementById(canvasId);
+  if (!window.Chart || !canvas) {
+    return null;
+  }
+
+  const ctx = canvas.getContext('2d');
   return new Chart(ctx, {
     type: 'line',
     data: {
@@ -228,6 +297,10 @@ function createLineChart(canvasId, label) {
 }
 
 function pushPoint(chart, label, value) {
+  if (!chart) {
+    return;
+  }
+
   chart.data.labels.push(label);
   chart.data.datasets[0].data.push(value);
   if (chart.data.labels.length > 24) {
