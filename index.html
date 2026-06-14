@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agrinho - Plataforma Agrícola</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-sA+e2Y0gqgRk3s8gG0n2kqk6Yq5p2bJY8q+v2wQ3hSU=" crossorigin="" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j8m2Q2v7Q0gkQqv+6Vw5eQ2b6Y1z1r2u2s5mQ2M=" crossorigin=""></script>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-content">
+      <h1>Agrinho — Agricultura Inteligente</h1>
+      <p>Dashboard de clima, IA para plantio e calculadora de substrato para sua fazenda.</p>
+    </div>
+  </header>
+
+  <main>
+    <section class="composition">
+      <h2>BioSubstrato Sustentável</h2>
+      <div class="composition-grid">
+        <article class="comp-card">
+          <div class="comp-icon">🌾</div>
+          <h3>Silagem de milho</h3>
+          <p>Matéria orgânica fermentada que melhora a retenção de água e nutrição do solo.</p>
+        </article>
+        <article class="comp-card">
+          <div class="comp-icon">🌍</div>
+          <h3>Terra premium</h3>
+          <p>Solo fértil que fornece estabilidade e nutrientes essenciais para raízes saudáveis.</p>
+        </article>
+        <article class="comp-card">
+          <div class="comp-icon">🪱</div>
+          <h3>Minhocas ativas</h3>
+          <p>Bioturbação natural que melhora a aeração e a estrutura do solo continuamente.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="benefits">
+      <h2>Benefícios do sistema</h2>
+      <div class="benefits-list">
+        <div class="benefit-item">
+          <span class="benefit-number">1</span>
+          <div>
+            <h4>Retenção de água</h4>
+            <p>Mais umidade disponível no solo, reduzindo a frequência de irrigação.</p>
+          </div>
+        </div>
+        <div class="benefit-item">
+          <span class="benefit-number">2</span>
+          <div>
+            <h4>Solo mais fértil</h4>
+            <p>Nutrientes liberados gradualmente para culturas mais saudáveis.</p>
+          </div>
+        </div>
+        <div class="benefit-item">
+          <span class="benefit-number">3</span>
+          <div>
+            <h4>100% natural</h4>
+            <p>Sem produtos químicos sintéticos, seguro para cultivo orgânico.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="calculator">
+      <div class="calc-text">
+        <h2>Calculadora de BioSubstrato</h2>
+        <p>Calcule a quantidade de substrato necessária para sua área e profundidade.</p>
+      </div>
+      <div class="calc-panel">
+        <div class="calc-input">
+          <label for="area-input">Área a ser cultivada (m²)</label>
+          <input type="number" id="area-input" placeholder="Ex: 100" min="1" />
+        </div>
+        <div class="calc-input">
+          <label for="depth-input">Profundidade desejada (cm)</label>
+          <select id="depth-input">
+            <option value="15">15 cm</option>
+            <option value="20" selected>20 cm</option>
+            <option value="30">30 cm</option>
+            <option value="40">40 cm</option>
+          </select>
+        </div>
+        <button id="calc-button">Calcular BioSubstrato</button>
+        <div id="calc-result" class="calc-result">
+          <h3>Resultado</h3>
+          <p>Preencha os dados acima para ver o volume, o peso e o custo.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="dashboard">
+      <div class="dashboard-grid">
+        <div class="panel" id="weatherPanel">
+          <h2>Clima em tempo real</h2>
+          <div id="weatherInfo">Carregando clima...</div>
+        </div>
+        <div class="panel" id="soilPanel">
+          <h2>Umidade do solo</h2>
+          <div id="soilInfo">-- %</div>
+          <canvas id="moistureChart" height="120"></canvas>
+        </div>
+        <div class="panel" id="tempPanel">
+          <h2>Temperatura</h2>
+          <div id="tempInfo">-- °C</div>
+          <canvas id="tempChart" height="120"></canvas>
+        </div>
+        <div class="panel" id="forecastPanel">
+          <h2>Previsão de safra e alertas</h2>
+          <ul id="alertsList"></ul>
+        </div>
+        <div class="panel" id="mapPanel">
+          <h2>Mapa da fazenda</h2>
+          <div id="map"></div>
+        </div>
+        <div class="panel" id="sustainPanel">
+          <h2>Indicadores de sustentabilidade</h2>
+          <ul id="sustainList">
+            <li id="usageWater">Uso de água: -- L/ha</li>
+            <li id="efficiency">Eficiência hídrica: -- %</li>
+            <li id="carbon">Pegada de carbono: -- kg CO₂</li>
+          </ul>
+        </div>
+        <div class="panel" id="aiPanel">
+          <h2>IA para plantio</h2>
+          <label>Localização:
+            <input id="coordInput" placeholder="lat,lon" value="-23.5489,-46.6388" />
+          </label>
+          <button id="btnSuggest">Gerar recomendações</button>
+          <div id="suggestionPanel">Clique em "Gerar recomendações"</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <small>Demo — dados em tempo real via Open-Meteo e simulação de sensores.</small>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
